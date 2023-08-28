@@ -10,12 +10,13 @@ class CreateUser {
     }
 
     async addUser(){
-        const existingUser=UserService.findOne(this.email);
+        const existingUser=await UserService.findOne(this.email);
         if(existingUser){
             throw new Error("User Already Existed");
         }
         const hash=await bcrypt.hash(this.password,12);
         const user=await UserService.create(this.name,this.email,hash);
+        // console.log(user);
         return user;
     }
 

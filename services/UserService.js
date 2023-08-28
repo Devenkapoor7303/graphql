@@ -1,4 +1,3 @@
-const bcrypt=require("bcrypt");
 const bcrpyt =require("bcrypt");
 
 class UserService {
@@ -11,13 +10,13 @@ class UserService {
     static async authenticate(email,password,req){
         if(req.isAuthenticated){
             const user=req.user;
-            const isEqual=bcrpyt.compare(password,user.password);
+            const isEqual=await bcrpyt.compare(password,user.password);
             if(user.email===email && isEqual){
                 return user;
             }
         }
         const user=await _db.User.findOne({email});
-        const isEqual=bcrpyt.compare(password,user.password);
+        const isEqual=await bcrpyt.compare(password,user.password);
         if(isEqual){
             req.loginUser(user._doc);
             return user;

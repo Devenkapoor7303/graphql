@@ -1,6 +1,9 @@
 const HealthResolver = require('./resolvers/HealthResolver');
 const CreateUser=require("./resolvers/CreateUser");
 const UserService = require("../services/UserService");
+const BoardService=require("../services/BoardService");
+const ListService=require("../services/ListService");
+const TaskService=require("../services/TaskService");
 const WithAuthResolver = require('./resolvers/WithAuthResolver');
 const MutationWithAuthResolver = require('./resolvers/MutationWithAuthResolver');
 const {enc, dec} = require('../bootloader/security/StatelessMiddleware');
@@ -43,11 +46,10 @@ exports = module.exports = class ResolverRoot {
             throw new Error("Password Field is empty");
         }
         const userObject=new CreateUser(name,email,password);
+
         const newUser=await userObject.addUser();
         ctx.loginUser(newUser._doc);
-        const authData={token:ctx.cookies._aklpsk};
-        const doc={...newUser._doc,authData:authData};
-        return doc;
+        return {...newUser._doc};
     }
 
     async loginUser({userInput},ctx){
@@ -63,7 +65,59 @@ exports = module.exports = class ResolverRoot {
             throw new Error('Invalid Auth Provided. Token not Valid.');
         }
         return user;
-    }    
+    }
+    
+    async createBoard({name}){
+        if(validator.isEmpty(name)){
+            throw new Error("Board Name is Empty");
+        }
+        const board=await BoardService.create(name);
+        return board;
+    }
+
+    async createList({name,board_id}){
+        if(validator.isEmpty(name)){
+            throw new Error("List Name is Empty");
+        }
+        const List=await ListService.create(name,board_id);
+        return List;
+    }
+
+    async createTask({name,assignedTo,list_id}){
+        if(validator.isEmpty(name)){
+            throw new Error("Task Name is Empty");
+        }
+        const Task=await TaskService.create(name,assignedTo,list_id);
+        return Task;
+    }
+
+    async Lists(){
+        const allList=await ListService.find();
+        return allList;
+    }
+
+    async Boards(){
+        const Board=await BoardService.find();
+        const listArray = Board[0].lists;
+        const lists=await _db.List.find({_id: { $in: listArray }}).populate("tasks");
+        const taskArray=lists[0].tasks;
+        console.log(lists);
+        // const result=lists.map((task)=>{
+        //     const newArray=task.tasks;
+        //     console.log(newArray);
+            
+        // });
+        const tasks=await _db.Task.find({_id:{$in:taskArray}});
+        const res={...Board[0]._doc,lists};
+        // console.log(res);
+
+        return res;
+    }
+
+    async Tasks(){
+        const Tasks=await TaskService.find();
+        return Tasks;
+    }
 
     async constant({value}) {
         return value;
